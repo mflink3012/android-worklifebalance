@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         final TimeHelper endTime = new TimeHelper();
 
         endTime.copy(startTime);
-        endTime.subtract(pauseLength);
+        endTime.add(pauseLength);
         endTime.add(workLength);
 
         if (endTime.getHours() > 23) {
