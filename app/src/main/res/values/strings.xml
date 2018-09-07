@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">WorkLifeBalance</string>
+    <string name="label_starttime">Start time</string>
+    <string name="label_pauselength">Pause length</string>
+    <string name="label_worklength">Work length</string>
+    <string name="label_endtime">End time</string>
+    <string name="label_now">Now</string>
+    <string name="toast_starttime">Start time is not valid! Cause: %1$s, Position: %2$d</string>
+    <string name="toast_pauselength">Pause length is not valid! Cause: %1$s, Position: %2$d</string>
+    <string name="toast_worklength">Work length is invalid! Cause: %1$s, Position: %2$d</string>
+    <string name="toast_invalidhours">Invalid hours! Valid hours are between (or equal) 0 and 23.</string>
+    <string name="toast_invalidminutes">Invalid minutes! Valid minutes are between (or equal) 0 and 59.</string>
+</resources>
