@@ -1,64 +1,26 @@
 package de.bitblox.android.app.worklifebalance;
 
+import android.app.Activity;
+import android.app.TimePickerDialog;
 import android.content.SharedPreferences;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.TextView;
+import android.widget.TimePicker;
 
-import java.text.ParseException;
 import java.util.Calendar;
 
-public class MainActivity extends AppCompatActivity {
-    private EditText startTimeInput = null;
-    private TimeHelper startTime = new TimeHelper();
-    private EditText pauseLengthInput = null;
-    private TimeHelper pauseLength = new TimeHelper();
-    private EditText workLengthInput = null;
-    private TimeHelper workLength = new TimeHelper();
-    private EditText endTimeOutput = null;
-
-    class TextChangedWatcher implements TextWatcher {
-        final int toastResId;
-        TimeHelper timeHelper;
-
-        public TextChangedWatcher(final int toastResId, final TimeHelper timeHelper) {
-            this.toastResId = toastResId;
-            this.timeHelper = timeHelper;
-        }
-
-        @Override
-        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-            // Not interesting.
-        }
-
-        @Override
-        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-            // Not interesting.
-        }
-
-        @Override
-        public void afterTextChanged(final Editable editable) {
-            final String timeString = editable.toString();
-            timeHelper.copy(checkTimeInput(timeString, toastResId));
-
-            if (startTime.isValid() && pauseLength.isValid() && workLength.isValid()) {
-                calculateEndTime();
-                save();
-            } else {
-                endTimeOutput.setText("??:??");
-            }
-        }
-    }
+public class MainActivity extends Activity implements TimePickerDialog.OnTimeSetListener {
+    private TimeHelper startTime;
+    private TimeHelper pauseLength;
+    private TimeHelper workLength;
+    private TimeHelper endTime;
+    private TimeHelper timeHelper;
+    private TextView endTimeOutput;
 
     private void calculateEndTime() {
-        final TimeHelper endTime = new TimeHelper();
-
-        endTime.copy(startTime);
+        endTime.set(startTime);
         endTime.add(pauseLength);
         endTime.add(workLength);
 
@@ -66,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
             endTime.subtract(new TimeHelper(24, 0));
         }
 
-        endTimeOutput.setText(endTime.getHours() + ":" + endTime.getMinutes());
+        save();
     }
 
     @Override
@@ -74,73 +36,105 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        startTimeInput = (EditText) findViewById(R.id.input_starttime);
-        startTimeInput.addTextChangedListener(new TextChangedWatcher(R.string.toast_starttime, startTime));
+        final TextView startTimeInput = (TextView) findViewById(R.id.input_starttime);
+        startTime = new TimeHelper(7, 45) {
+            @Override
+            public void onChange() {
+                super.onChange();
+                startTimeInput.setText(toString());
+            }
+        };
+        startTimeInput.setOnClickListener(createTimePickerListener(startTimeInput, startTime));
 
         ((Button) findViewById(R.id.button_now)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startTimeInput.setText(Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + ":" + Calendar.getInstance().get(Calendar.MINUTE));
+                startTime.set(Calendar.getInstance());
+                calculateEndTime();
             }
         });
 
-        pauseLengthInput = (EditText) findViewById(R.id.input_pauselength);
-        pauseLengthInput.addTextChangedListener(new TextChangedWatcher(R.string.toast_pauselength, pauseLength));
+        final TextView pauseLengthInput = (TextView) findViewById(R.id.input_pauselength);
+        pauseLength = new TimeHelper(0, 30) {
+            @Override
+            public void onChange() {
+                super.onChange();
+                pauseLengthInput.setText(this.toString());
+            }
+        };
+        pauseLengthInput.setOnClickListener(createTimePickerListener(pauseLengthInput, pauseLength));
 
-        workLengthInput = (EditText) findViewById(R.id.input_worklength);
-        workLengthInput.addTextChangedListener(new TextChangedWatcher(R.string.toast_worklength, workLength));
+        final TextView workLengthInput = (TextView) findViewById(R.id.input_worklength);
+        workLength = new TimeHelper(8, 15) {
+            @Override
+            public void onChange() {
+                super.onChange();
+                workLengthInput.setText(this.toString());
+            }
+        };
+        workLengthInput.setOnClickListener(createTimePickerListener(workLengthInput, workLength));
 
-        endTimeOutput = (EditText) findViewById(R.id.output_endtime);
+        endTimeOutput = (TextView) findViewById(R.id.output_endtime);
+        endTime = new TimeHelper() {
+            @Override
+            public void onChange() {
+                super.onChange();
+                endTimeOutput.setText(this.toString());
+            }
+        };
 
         load();
+    }
+
+    private View.OnClickListener createTimePickerListener(final TextView textView, final TimeHelper timeHelper) {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final TimePickerFragment timePickerFragment = new TimePickerFragment();
+                timePickerFragment.setListener(MainActivity.this);
+
+                if (timeHelper.isValid()) {
+                    timePickerFragment.setTime(timeHelper.getHours(), timeHelper.getMinutes());
+                }
+
+                MainActivity.this.timeHelper = timeHelper;
+
+                timePickerFragment.show(MainActivity.this.getFragmentManager(), String.valueOf(textView.getId()));
+            }
+        };
     }
 
     private void load() {
         final SharedPreferences sharedPref = getSharedPreferences("settings", MODE_PRIVATE);
 
         if (sharedPref.contains("startTime")) {
-            startTimeInput.setText(sharedPref.getString("startTime", "07:45"));
+            startTime.set(sharedPref.getString("startTime", "07:45"));
         }
         if (sharedPref.contains("pauseLength")) {
-            pauseLengthInput.setText(sharedPref.getString("pauseLength", "00:30"));
+            pauseLength.set(sharedPref.getString("pauseLength", "00:30"));
         }
         if (sharedPref.contains("workLength")) {
-            workLengthInput.setText(sharedPref.getString("workLength", "08:15"));
+            workLength.set(sharedPref.getString("workLength", "08:15"));
         }
     }
 
     private void save() {
         final SharedPreferences sharedPref = getSharedPreferences("settings", MODE_PRIVATE);
         final SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putString("startTime", startTimeInput.getText().toString());
-        editor.putString("pauseLength", pauseLengthInput.getText().toString());
-        editor.putString("workLength", workLengthInput.getText().toString());
+        editor.putString("startTime", startTime.toString());
+        editor.putString("pauseLength", pauseLength.toString());
+        editor.putString("workLength", workLength.toString());
         editor.commit();
     }
 
-    private TimeHelper checkTimeInput(final String timeString, final int toastResId) {
-        final TimeHelper timeHelper;
-        try {
-            timeHelper = TimeHelper.parse(timeString);
-        } catch (ParseException e) {
-            if (e.getErrorOffset() > -1) {
-                Toast.makeText(getApplicationContext(), getResources().getString(toastResId, e.getMessage(), e.getErrorOffset() + 1), Toast.LENGTH_SHORT).show();
-            }
+    @Override
+    public void onTimeSet(final TimePicker timePicker, final int hour, final int minute) {
+        timeHelper.set(hour, minute);
 
-            // Don't do anything on -1.
-            return null;
+        if (startTime.isValid() && pauseLength.isValid() && workLength.isValid()) {
+            calculateEndTime();
+        } else {
+            endTimeOutput.setText("--:--");
         }
-
-        if (timeHelper.getHours() > 23) {
-            Toast.makeText(getApplicationContext(), getResources().getString(toastResId, R.string.toast_invalidhours, 1), Toast.LENGTH_SHORT).show();
-            return null;
-        }
-
-        if (timeHelper.getMinutes() > 59) {
-            Toast.makeText(getApplicationContext(), getResources().getString(toastResId, R.string.toast_invalidminutes, timeString.length()), Toast.LENGTH_SHORT).show();
-            return null;
-        }
-
-        return timeHelper;
     }
 }

@@ -1,8 +1,6 @@
 package de.bitblox.android.app.worklifebalance;
 
-import android.text.format.Time;
-
-import java.text.ParseException;
+import java.util.Calendar;
 
 public class TimeHelper {
     private int hours;
@@ -15,73 +13,7 @@ public class TimeHelper {
     }
 
     public TimeHelper(final int hours, final int minutes) {
-        this.hours = hours;
-        this.minutes = minutes;
-        this.valid = true;
-    }
-
-    public static TimeHelper parse(final String timeString) throws ParseException {
-        if (timeString == null) {
-            throw new ParseException("Value is null!", -1);
-        }
-
-        final String trimmedTimeString = timeString.trim();
-        if (trimmedTimeString.length() == 0) {
-            throw new ParseException("Value is empty!", -1);
-        }
-
-        final int indexOfColon = timeString.indexOf(":");
-        if ((indexOfColon < 1) || (indexOfColon > 2) || (indexOfColon == timeString.length() - 1)) {
-            throw new ParseException("Colon is not found at index 1 or 2 or is at the end!", -1);
-        }
-
-        final String[] splittedTimeString = timeString.split(":");
-
-        if ((splittedTimeString[0].length() < 1) || (splittedTimeString[1].length() < 2)) {
-            throw new ParseException("Value is too short!", -1);
-        }
-
-        if ((splittedTimeString[0].length() > 2) || (splittedTimeString[1].length() > 2)) {
-            throw new ParseException("Value is too long!", -1);
-        }
-
-        if ((splittedTimeString[0].charAt(0) < '0') || (splittedTimeString[0].charAt(0) > '9')) {
-            throw new ParseException("Character is not a number!", 0);
-        }
-
-        if (splittedTimeString[0].length() == 2) {
-            if ((splittedTimeString[0].charAt(1) < '0') || (splittedTimeString[0].charAt(1) > '9')) {
-                throw new ParseException("Character is not a number!", 1);
-            }
-        }
-
-        if ((splittedTimeString[1].charAt(0) < '0') || (splittedTimeString[1].charAt(0) > '9')) {
-            throw new ParseException("Character is not a number!", 1 + indexOfColon);
-        }
-
-        if ((splittedTimeString[1].charAt(1) < '0') || (splittedTimeString[1].charAt(1) > '9')) {
-            throw new ParseException("Character is not a number!", 2 + indexOfColon);
-        }
-
-        int h = 0;
-
-        if (splittedTimeString[0].length() == 2) {
-            if (splittedTimeString[0].charAt(0) > '0') {
-                h = Integer.valueOf(String.valueOf(splittedTimeString[0].charAt(0))) * 10;
-            }
-            h = h + Integer.valueOf(String.valueOf(splittedTimeString[0].charAt(1)));
-        } else {
-            h = h + Integer.valueOf(splittedTimeString[0]);
-        }
-
-        int m = 0;
-
-        if (splittedTimeString[1].charAt(0) > '0') {
-            m = Integer.valueOf(String.valueOf(splittedTimeString[1].charAt(0))) * 10;
-        }
-        m = m + Integer.valueOf(String.valueOf(splittedTimeString[1].charAt(1)));
-
-        return new TimeHelper(h, m);
+        set(hours, minutes);
     }
 
     public int getHours() {
@@ -96,34 +28,80 @@ public class TimeHelper {
         return valid;
     }
 
-    public void copy(final TimeHelper other) {
-        if (other == null) {
-            valid = false;
-            return;
-        }
+    public void set(final int hours, final int minutes) {
+        this.hours = hours;
+        this.minutes = minutes;
+        this.valid = true;
+        onChange();
+    }
 
-        hours = other.hours;
-        minutes = other.minutes;
-        valid = true;
+    public void set(final TimeHelper other) {
+        set(other.hours, other.minutes);
     }
 
     public void add(final TimeHelper toAdd) {
-        hours = hours + toAdd.hours;
-        minutes = minutes + toAdd.minutes;
+        int h = hours + toAdd.hours;
+        int m = minutes + toAdd.minutes;
 
-        if (minutes > 59) {
-            hours = hours + minutes / 60;
-            minutes = minutes % 60;
+        if (m > 59) {
+            h = h + m / 60;
+            m = m % 60;
         }
+
+        set(h, m);
     }
 
     public void subtract(final TimeHelper toSubtract) {
-        hours = hours - toSubtract.hours;
-        minutes = minutes - toSubtract.minutes;
+        int h = hours - toSubtract.hours;
+        int m = minutes - toSubtract.minutes;
 
-        if (minutes < 0) {
-            hours = hours + minutes / 60;
-            minutes = (minutes % 60) * -1;
+        if (m < 0) {
+            h = h + m / 60;
+            m = (m % 60) * -1;
         }
+
+        set(h, m);
+    }
+
+    @Override
+    public String toString() {
+        String h = Integer.toString(hours);
+
+        if (h.length() < 2) {
+            h = "0" + h;
+        }
+
+        String m = Integer.toString(minutes);
+        if (m.length() < 2) {
+            m = "0" + m;
+        }
+
+        return h + ":" + m;
+    }
+
+    public void set(final String s) {
+        final String[] sf = s.split(":");
+        final int h, m;
+
+        if (sf[0].startsWith("0")) {
+            h = Integer.valueOf(sf[0].substring(1));
+        } else {
+            h = Integer.valueOf(sf[0]);
+        }
+
+        if (sf[1].startsWith("0")) {
+            m = Integer.valueOf(sf[1].substring(1));
+        } else {
+            m = Integer.valueOf(sf[1]);
+        }
+
+        set(h, m);
+    }
+
+    public void set(final Calendar calendar) {
+        set(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE));
+    }
+
+    public void onChange() {
     }
 }
